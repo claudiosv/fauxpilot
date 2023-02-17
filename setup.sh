@@ -103,9 +103,13 @@ function fastertransformer_backend() {
     DOWNLOAD_MODEL=y
   fi
 
+  # Not used for this backend but needs to be present
+  HF_CACHE_DIR="$(pwd)/hf_cache"
+  mkdir -p "$HF_CACHE_DIR"
+
   if [[ ${DOWNLOAD_MODEL:-y} =~ ^[Yy]$ ]]; then
     echo "Downloading and converting the model, this will take a while..."
-    docker run --rm -v "$(pwd)/hf_cache":/hf_cache -v "${MODELS_ROOT_DIR}":/models -e MODEL=${MODEL} -e NUM_GPUS="${NUM_GPUS}" moyix/model_converter:claudio
+    docker run --rm -v "${HF_CACHE_DIR}":/hf_cache -v "${MODELS_ROOT_DIR}":/models -e MODEL=${MODEL} -e NUM_GPUS="${NUM_GPUS}" moyix/model_converter:claudio
     # if [ "$NUM_GPUS" -le 2 ]; then
     #   echo "Downloading the model from HuggingFace, this will take a while..."
     #   SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
@@ -121,9 +125,6 @@ function fastertransformer_backend() {
     # fi
   fi
 
-  # Not used for this backend but needs to be present
-  HF_CACHE_DIR="$(pwd)/.hf_cache"
-  mkdir -p "$HF_CACHE_DIR"
   echo "HF_CACHE_DIR=${HF_CACHE_DIR}" >>.env
 }
 
