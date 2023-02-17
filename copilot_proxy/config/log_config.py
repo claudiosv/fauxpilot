@@ -7,7 +7,7 @@ uvicorn_logger = {
         "access": {
             "()": "uvicorn.logging.AccessFormatter",
             "fmt": '%(levelprefix)s %(asctime)s :: %(client_addr)s - "%(request_line)s" %(status_code)s',
-            "use_colors": True
+            "use_colors": True,
         },
     },
     "handlers": {
@@ -21,7 +21,7 @@ uvicorn_logger = {
         "uvicorn.access": {
             "handlers": ["access"],
             # "level": "INFO",
-            "propagate": False
+            "propagate": False,
         },
     },
 }

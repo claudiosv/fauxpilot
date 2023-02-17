@@ -45,7 +45,9 @@ def teardown_module():
         )
 
 
-def enter_input(proc: pexpect.spawn, expect: str, input_s: str, timeout: int = 5) -> str:
+def enter_input(
+    proc: pexpect.spawn, expect: str, input_s: str, timeout: int = 5
+) -> str:
     """
     Helper function to enter input for a given prompt. Returns consumed output.
     """
@@ -69,7 +71,9 @@ def run_common_setup_steps(n_gpus: int = 0) -> pexpect.spawn:
     Helper function to run common setup steps.
     """
     proc = pexpect.pty_spawn.spawn(
-        "./setup.sh 2>&1", encoding="utf-8", cwd=str(root),
+        "./setup.sh 2>&1",
+        encoding="utf-8",
+        cwd=str(root),
     )
     proc.ignorecase = True
 
@@ -96,8 +100,11 @@ def load_test_env():
 
 
 def run_inference(
-    prompt: str, model: str = "py-model", port: int = 5000, return_all: bool = False,
-    **kwargs
+    prompt: str,
+    model: str = "py-model",
+    port: int = 5000,
+    return_all: bool = False,
+    **kwargs,
 ) -> Union[str, Dict]:
     """
     Invokes the copilot proxy with the given prompt and returns the completion
@@ -111,7 +118,9 @@ def run_inference(
         "temperature": kwargs.get("temperature", 0.0),
         "top_p": kwargs.get("top_p", 1.0),
         "n": kwargs.get("n", 1),
-        "stream": kwargs.get("stream", None),  # it's not true/false. It's None or not None :[
+        "stream": kwargs.get(
+            "stream", None
+        ),  # it's not true/false. It's None or not None :[
         "logprobs": kwargs.get("logprobs", 0),
         "stop": kwargs.get("stop", ""),
         "echo": kwargs.get("echo", True),
@@ -139,7 +148,9 @@ def test_python_backend(n_gpus: int):
     """
     proc = run_common_setup_steps(n_gpus)
 
-    choices = enter_input(proc, r".*Choose your backend.*Enter your choice[^:]+: ?", "2")
+    choices = enter_input(
+        proc, r".*Choose your backend.*Enter your choice[^:]+: ?", "2"
+    )
     assert "[2] Python backend" in choices, "Option 2 should be Python backend"
 
     choices = enter_input(proc, r".*Models available:.*Enter your choice[^:]+: ?", "1")
@@ -165,13 +176,18 @@ def test_python_backend(n_gpus: int):
         )
 
         print("Waiting for API to be ready...")
-        docker_proc.expect(r".*Started GRPCInferenceService at 0.0.0.0:8001", timeout=120)
+        docker_proc.expect(
+            r".*Started GRPCInferenceService at 0.0.0.0:8001", timeout=120
+        )
 
         print("API ready, sending request...")
 
         # Simple test 1: hello world prompt without bells and whistles
         response = run_inference("def hello_world():\n", max_tokens=16, return_all=True)
-        assert response["choices"][0]["text"].rstrip() == '    print("Hello World")\n\nhello_world()\n\n#'
+        assert (
+            response["choices"][0]["text"].rstrip()
+            == '    print("Hello World")\n\nhello_world()\n\n#'
+        )
         assert response["choices"][0]["finish_reason"] == "length"
 
     finally:
@@ -180,4 +196,9 @@ def test_python_backend(n_gpus: int):
 
         # killing docker-compose process doesn't bring down the containers.
         # explicitly stop the containers:
-        subprocess.run(["docker-compose", "-f", compose_file, "down"], cwd=curdir, check=True, env=load_test_env())
+        subprocess.run(
+            ["docker-compose", "-f", compose_file, "down"],
+            cwd=curdir,
+            check=True,
+            env=load_test_env(),
+        )

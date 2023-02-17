@@ -39,24 +39,34 @@ def get_weight_data_type(data_type):
 
 
 def split_and_convert_process(i, saved_dir, factor, key, val):
-    if key.find("input_layernorm.weight") != -1 or key.find("input_layernorm.bias") != -1 or \
-            key.find("attention.dense.bias") != -1 or key.find("post_attention_layernorm.weight") != -1 or \
-            key.find("post_attention_layernorm.bias") != -1 or key.find("mlp.dense_4h_to_h.bias") != -1 or \
-            key.find("final_layernorm.weight") != -1 or key.find("final_layernorm.bias") != -1:
-
+    if (
+        key.find("input_layernorm.weight") != -1
+        or key.find("input_layernorm.bias") != -1
+        or key.find("attention.dense.bias") != -1
+        or key.find("post_attention_layernorm.weight") != -1
+        or key.find("post_attention_layernorm.bias") != -1
+        or key.find("mlp.dense_4h_to_h.bias") != -1
+        or key.find("final_layernorm.weight") != -1
+        or key.find("final_layernorm.bias") != -1
+    ):
         # shared weights, only need to convert the weights of rank 0
         if i == 0:
             saved_path = saved_dir + "/model." + key + ".bin"
             val.tofile(saved_path)
 
-    elif key.find("attention.dense.weight") != -1 or key.find("mlp.dense_4h_to_h.weight") != -1:
+    elif (
+        key.find("attention.dense.weight") != -1
+        or key.find("mlp.dense_4h_to_h.weight") != -1
+    ):
         split_vals = np.split(val, factor, axis=0)
         for j in range(factor):
             saved_path = saved_dir + "/model." + key + ".%d.bin" % (i * factor + j)
             split_vals[j].tofile(saved_path)
 
-    elif key.find("mlp.dense_h_to_4h.weight") != -1 or key.find("mlp.dense_h_to_4h.bias") != -1:
-
+    elif (
+        key.find("mlp.dense_h_to_4h.weight") != -1
+        or key.find("mlp.dense_h_to_4h.bias") != -1
+    ):
         split_vals = np.split(val, factor, axis=-1)
         for j in range(factor):
             saved_path = saved_dir + "/model." + key + ".%d.bin" % (i * factor + j)
@@ -81,7 +91,7 @@ def split_and_convert(args):
 
     t_gpu_num = args.trained_gpu_num
     i_gpu_num = args.infer_gpu_num
-    assert (i_gpu_num % t_gpu_num == 0)
+    assert i_gpu_num % t_gpu_num == 0
 
     factor = (int)(i_gpu_num / t_gpu_num)
 
@@ -95,7 +105,7 @@ def split_and_convert(args):
         for k, v in vars(model.config).items():
             config["gpt"][k] = f"{v}"
         config["gpt"]["weight_data_type"] = args.weight_data_type
-        with open((Path(saved_dir) / "config.ini").as_posix(), 'w') as configfile:
+        with open((Path(saved_dir) / "config.ini").as_posix(), "w") as configfile:
             config.write(configfile)
     except Exception:
         print("Fail to save the config in config.ini.")
@@ -129,47 +139,66 @@ def split_and_convert(args):
         if name.find("weight") == -1 and name.find("bias") == -1:
             continue
         print(name)
-        if name == 'transformer.wte.weight':
-            param.detach().cpu().numpy().astype(np_weight_data_type).tofile(saved_dir + "model.wte.bin")
-        elif name == 'transformer.ln_f.bias':
+        if name == "transformer.wte.weight":
             param.detach().cpu().numpy().astype(np_weight_data_type).tofile(
-                saved_dir + "model.final_layernorm.bias.bin")
-        elif name == 'transformer.ln_f.weight':
+                saved_dir + "model.wte.bin"
+            )
+        elif name == "transformer.ln_f.bias":
             param.detach().cpu().numpy().astype(np_weight_data_type).tofile(
-                saved_dir + "model.final_layernorm.weight.bin")
-        elif name == 'lm_head.weight':
-            param.detach().cpu().numpy().astype(np_weight_data_type).tofile(saved_dir + "model.lm_head.weight.bin")
-        elif name == 'lm_head.bias':
-            param.detach().cpu().numpy().astype(np_weight_data_type).tofile(saved_dir + "model.lm_head.bias.bin")
+                saved_dir + "model.final_layernorm.bias.bin"
+            )
+        elif name == "transformer.ln_f.weight":
+            param.detach().cpu().numpy().astype(np_weight_data_type).tofile(
+                saved_dir + "model.final_layernorm.weight.bin"
+            )
+        elif name == "lm_head.weight":
+            param.detach().cpu().numpy().astype(np_weight_data_type).tofile(
+                saved_dir + "model.lm_head.weight.bin"
+            )
+        elif name == "lm_head.bias":
+            param.detach().cpu().numpy().astype(np_weight_data_type).tofile(
+                saved_dir + "model.lm_head.bias.bin"
+            )
         else:
             for i in range(len(huggingface_model_name_pattern)):
                 if name.find(huggingface_model_name_pattern[i]) != -1:
                     # Special case for QKV weights
                     if name.find("attn.q_proj.weight") != -1:
-                        layer = name.split('.')[2]
-                        base_k = f'transformer.h.{layer}.'
+                        layer = name.split(".")[2]
+                        base_k = f"transformer.h.{layer}."
                         w = model.state_dict()
-                        QKV_w = torch.stack([
-                            w[base_k + "attn.q_proj.weight"],
-                            w[base_k + "attn.k_proj.weight"],
-                            w[base_k + "attn.v_proj.weight"],
-                        ])  # [qkv, n_heads * dim_head, latent_space]
+                        QKV_w = torch.stack(
+                            [
+                                w[base_k + "attn.q_proj.weight"],
+                                w[base_k + "attn.k_proj.weight"],
+                                w[base_k + "attn.v_proj.weight"],
+                            ]
+                        )  # [qkv, n_heads * dim_head, latent_space]
                         QKV_w = QKV_w.permute(2, 0, 1)
-                        weights = QKV_w.detach().cpu().numpy().astype(np_weight_data_type)
+                        weights = (
+                            QKV_w.detach().cpu().numpy().astype(np_weight_data_type)
+                        )
                     else:
-                        weights = param.detach().cpu().numpy().astype(np_weight_data_type)
+                        weights = (
+                            param.detach().cpu().numpy().astype(np_weight_data_type)
+                        )
 
                     # Some weights need to be transposed
-                    if name.find("mlp.fc_in.weight") != -1 or name.find("mlp.fc_out.weight") != -1 or \
-                            name.find("attn.out_proj.weight") != -1:
+                    if (
+                        name.find("mlp.fc_in.weight") != -1
+                        or name.find("mlp.fc_out.weight") != -1
+                        or name.find("attn.out_proj.weight") != -1
+                    ):
                         weights = weights.T
 
-                    new_name = name.replace("transformer.h.", "layers.").replace(huggingface_model_name_pattern[i],
-                                                                                 ft_model_name_pattern[i])
+                    new_name = name.replace("transformer.h.", "layers.").replace(
+                        huggingface_model_name_pattern[i], ft_model_name_pattern[i]
+                    )
 
-                    pool.starmap(split_and_convert_process,
-                                 [(0, saved_dir, factor, new_name, args,
-                                   weights)], )
+                    pool.starmap(
+                        split_and_convert_process,
+                        [(0, saved_dir, factor, new_name, args, weights)],
+                    )
 
     pool.close()
     pool.join()
@@ -177,14 +206,40 @@ def split_and_convert(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('-saved_dir', '-o', type=str, help='file name of output file', required=True)
-    parser.add_argument('-in_file', '-i', type=str, help='HF model name or directory', required=True)
-    parser.add_argument('-trained_gpu_num', '-t_g', type=int, help='How many gpus for training', default=1)
-    parser.add_argument('-infer_gpu_num', '-i_g', type=int, help='How many gpus for inference', required=True)
-    parser.add_argument("-processes", "-p", type=int, help="How many processes to spawn for conversion (default: 4)",
-                        default=4)
-    parser.add_argument("-weight_data_type", type=str, default="fp32", choices=["fp32", "fp16"],
-                        help="output weight data type")
+    parser.add_argument(
+        "-saved_dir", "-o", type=str, help="file name of output file", required=True
+    )
+    parser.add_argument(
+        "-in_file", "-i", type=str, help="HF model name or directory", required=True
+    )
+    parser.add_argument(
+        "-trained_gpu_num",
+        "-t_g",
+        type=int,
+        help="How many gpus for training",
+        default=1,
+    )
+    parser.add_argument(
+        "-infer_gpu_num",
+        "-i_g",
+        type=int,
+        help="How many gpus for inference",
+        required=True,
+    )
+    parser.add_argument(
+        "-processes",
+        "-p",
+        type=int,
+        help="How many processes to spawn for conversion (default: 4)",
+        default=4,
+    )
+    parser.add_argument(
+        "-weight_data_type",
+        type=str,
+        default="fp32",
+        choices=["fp32", "fp16"],
+        help="output weight data type",
+    )
 
     args = parser.parse_args()
     print("\n=============== Argument ===============")

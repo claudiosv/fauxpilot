@@ -2,8 +2,13 @@ from typing import Optional
 
 
 class FauxPilotException(Exception):
-    def __init__(self, message: str, error_type: Optional[str] = None, param: Optional[str] = None,
-                 code: Optional[int] = None):
+    def __init__(
+        self,
+        message: str,
+        error_type: Optional[str] = None,
+        param: Optional[str] = None,
+        code: Optional[int] = None,
+    ):
         super().__init__(message)
         self.message = message
         self.error_type = error_type
@@ -12,10 +17,10 @@ class FauxPilotException(Exception):
 
     def json(self):
         return {
-            'error': {
-                'message': self.message,
-                'type': self.error_type,
-                'param': self.param,
-                'code': self.code
+            "error": {
+                "message": self.message,
+                "type": self.error_type,
+                "param": self.param,
+                "code": self.code,
             }
         }
