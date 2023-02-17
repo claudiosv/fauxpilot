@@ -105,7 +105,7 @@ function fastertransformer_backend() {
 
   if [[ ${DOWNLOAD_MODEL:-y} =~ ^[Yy]$ ]]; then
     echo "Downloading and converting the model, this will take a while..."
-    docker run --rm -v "${MODELS_ROOT_DIR}":/models -e MODEL=${MODEL} -e NUM_GPUS="${NUM_GPUS}" moyix/model_converter:claudio
+    docker run --rm -v "$(pwd)/hf_cache":/hf_cache -v "${MODELS_ROOT_DIR}":/models -e MODEL=${MODEL} -e NUM_GPUS="${NUM_GPUS}" moyix/model_converter:claudio
     # if [ "$NUM_GPUS" -le 2 ]; then
     #   echo "Downloading the model from HuggingFace, this will take a while..."
     #   SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"

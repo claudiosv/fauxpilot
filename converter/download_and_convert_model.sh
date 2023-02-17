@@ -2,6 +2,7 @@
 
 MODEL=${1}
 NUM_GPUS=${2}
+export HF_DATASETS_CACHE="/hf_cache"
 
 echo "Converting model ${MODEL} with ${NUM_GPUS} GPUs"
 
