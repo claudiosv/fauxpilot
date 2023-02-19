@@ -200,7 +200,7 @@ def split_and_convert(args):
 
                     pool.starmap(
                         split_and_convert_process,
-                        [(0, saved_dir, factor, new_name, args, weights)],
+                        [(0, saved_dir, factor, new_name, weights)],
                     )
 
     pool.close()
